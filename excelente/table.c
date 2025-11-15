@@ -121,11 +121,6 @@ void printFormulaCell (Cell* cell)
 	}
 }
 
-typedef struct CellSet
-{
-	unsigned int size;
-} CellSet;
-
 typedef struct Table
 {
 	unsigned int cellWidth;

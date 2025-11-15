@@ -77,7 +77,7 @@ void tableTest ()
 			printFormulaCell(posTable(&table, x, y));
 			printf(" (= %lf)\n\n", posTable(&table, x, y)->value);
 			
-			printf("WASD to move\nE to modify cell\nZX to change cell width\nC to resize table\nQ to exit\n");
+			printf("WASD to move\nE to modify cell\nZX to change cell width\nC to resize table\nQ to quit\n");
 		}
 		
 		c = mygetch();

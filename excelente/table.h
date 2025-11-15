@@ -8,6 +8,7 @@ typedef enum CellType
 	CELLTYPE_EMPTY,
 	CELLTYPE_VALUE,
 	CELLTYPE_FORMULA,
+	CELLTYPE_FORMULAINVALID,
 } CellType;
 
 typedef struct Cell
@@ -38,7 +39,11 @@ typedef struct Table
 
 void initTable (Table* table, unsigned int width, unsigned int height);
 
+void resizeTable (Table* table, unsigned int width, unsigned int height);
+
 void freeTable (Table* table);
+
+int isInvalidCell (Cell* cell);
 
 Cell* indexTable (Table* table, unsigned int index);
 
@@ -50,9 +55,11 @@ void calculateCellTable (Table* table, Cell* cell);
 
 void updateCellTable (Table* table, Cell* cell);
 
-void setValueCellTable (Table* table, Cell* cell, double x);
+int setValueCellTable (Table* table, Cell* cell, double x);
 
-void setFormulaCellTable (Table* table, Cell* cell, char* s);
+int setFormulaCellTable (Table* table, Cell* cell, char* s);
+
+int setCellTable (Table* table, Cell* cell, char* s);
 
 void printTable (Table* table, unsigned int x, unsigned int y);
 

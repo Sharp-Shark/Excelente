@@ -1,5 +1,11 @@
 #include <stdio.h>
 
+typedef struct Int2
+{
+	unsigned int x;
+	unsigned int y;
+} Int2;
+
 int intLength (int n)
 {
 	int len = n < 0;
@@ -33,7 +39,7 @@ int stringEquals (const char* s1, const char* s2)
 	return 1;
 }
 
-void stringCopy (char* sTo, char* sFrom)
+void stringCopy (char* sTo, const char* sFrom)
 {
 	int i = 0;
 	while(sFrom[i] != '\0')

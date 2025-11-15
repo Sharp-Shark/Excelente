@@ -99,17 +99,16 @@ void popIntStack (IntStack* stack, int* result)
 	stack->len -= 1;
 }
 
-void getIndexIntStack (IntStack* stack, int target, int* result)
+int getIndexIntStack (IntStack* stack, int target)
 {
 	for(int i = 0; i < stack->len; i++)
 	{
 		if(stack->ptr[i] == target)
 		{
-			*result = i;
-			return;
+			return i;
 		}
 	}
-	*result = -1;
+	return -1;
 }
 
 void printIntStack (IntStack* stack)
@@ -117,6 +116,14 @@ void printIntStack (IntStack* stack)
 	for (int i = 0; i < stack->len; i++)
 	{
 		printf("%d: %d\n", i, stack->ptr[i]);
+	}
+}
+
+void printNamedIntStack (IntStack* stack, const char** names)
+{
+	for (int i = 0; i < stack->len; i++)
+	{
+		printf("%d: %s\n", i, names[stack->ptr[i]]);
 	}
 }
 

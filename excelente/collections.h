@@ -35,9 +35,11 @@ void appendIntStack (IntStack* stack, int x);
 
 void popIntStack (IntStack* stack, int* result);
 
-void getIndexIntStack (IntStack* stack, int target, int* result);
+int getIndexIntStack (IntStack* stack, int target);
 
 void printIntStack (IntStack* stack);
+
+void printNamedIntStack (IntStack* stack, const char** names);
 
 void freeIntStack (IntStack* stack);
 

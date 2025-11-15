@@ -5,6 +5,7 @@
 #include "formlang.h"
 
 #define MAXWIDTH 26
+const unsigned int ALPHABETSIZE = MAXWIDTH;
 const char ALPHABET[MAXWIDTH + 1] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ\0";
 
 typedef enum CellType
@@ -12,6 +13,7 @@ typedef enum CellType
 	CELLTYPE_EMPTY,
 	CELLTYPE_VALUE,
 	CELLTYPE_FORMULA,
+	CELLTYPE_FORMULAINVALID,
 } CellType;
 
 typedef struct Cell
@@ -20,7 +22,7 @@ typedef struct Cell
 	double value;
 	char* formula;
 	Token* token;
-	struct Cell* update;
+	IntStack update;
 } Cell;
 
 void initCell (Cell* cell)
@@ -28,10 +30,12 @@ void initCell (Cell* cell)
 	cell->type = CELLTYPE_EMPTY;
 	cell->value = 0.0;
 	cell->formula = NULL;
+	cell->token = NULL;
 }
 
 void freeCell (Cell* cell)
 {
+	cell->type = CELLTYPE_EMPTY;
 	if(cell->formula != NULL)
 	{
 		free(cell->formula);
@@ -42,7 +46,19 @@ void freeCell (Cell* cell)
 		freeToken(cell->token);
 		cell->token = NULL;
 	}
-	cell->type = CELLTYPE_EMPTY;
+	cell->value = 0.0;
+}
+
+int isInvalidCell (Cell* cell)
+{
+	switch(cell->type)
+	{
+		case CELLTYPE_VALUE :
+		case CELLTYPE_FORMULA :
+			return 0;
+		default :
+			return 1;
+	}
 }
 
 void printValueCell (Cell* cell, const unsigned int cellWidth)
@@ -57,17 +73,22 @@ void printValueCell (Cell* cell, const unsigned int cellWidth)
 		case CELLTYPE_VALUE :
 		case CELLTYPE_FORMULA :
 		{
-			char s[64];
+			char* s = (char*) malloc(sizeof(char) * (cellWidth + 1));
 			sprintf(s, "%lg", cell->value);
 			s[cellWidth] = '\0';
 			
 			printPadding('.', cellWidth - stringLength(s));
 			printf("%s", s);
+			
+			free(s);
 			break;
 		}
+		case CELLTYPE_FORMULAINVALID :
+			printPadding('?', cellWidth);
+			break;
 		default :
 		{
-			printPadding('X', cellWidth);
+			printPadding('!', cellWidth);
 		}
 	}
 }
@@ -78,26 +99,32 @@ void printFormulaCell (Cell* cell)
 	{
 		case CELLTYPE_EMPTY :
 		{
-			printf("undefined\n");
+			printf("empty");
 			break;
 		}
 		case CELLTYPE_VALUE :
 		{
-			printf("%lf\n", cell->value);
+			printf("%lf", cell->value);
 			break;
 		}
 		case CELLTYPE_FORMULA :
+		case CELLTYPE_FORMULAINVALID :
 		{
-			printf("%s\n", cell->formula);
+			printf("%s", cell->formula);
 			break;
 		}
 		default :
 		{
-			printf("ERROR\n");
+			printf("ERROR");
 			break;
 		}
 	}
 }
+
+typedef struct CellSet
+{
+	unsigned int size;
+} CellSet;
 
 typedef struct Table
 {
@@ -113,7 +140,6 @@ void initTable (Table* table, unsigned int width, unsigned int height)
 	if(width > MAXWIDTH)
 	{
 		width = MAXWIDTH;
-		printf("WARNING: Table width cannot exceed %d.\n", MAXWIDTH);
 	}
 	
 	table->cellWidth = 8;
@@ -121,6 +147,25 @@ void initTable (Table* table, unsigned int width, unsigned int height)
 	table->height = height;
 	table->area = width * height;
 	table->cells = (Cell*) malloc(sizeof(Cell) * table->area);
+	
+	for(int i = 0; i < table->area; i++)
+	{
+		initCell(table->cells + i);
+	}
+}
+
+void resizeTable (Table* table, unsigned int width, unsigned int height)
+{
+	if(width > MAXWIDTH)
+	{
+		width = MAXWIDTH;
+	}
+	
+	table->cellWidth = 8;
+	table->width = width;
+	table->height = height;
+	table->area = width * height;	
+	table->cells = (Cell*) realloc(table->cells, sizeof(Cell) * table->area);
 	
 	for(int i = 0; i < table->area; i++)
 	{
@@ -139,6 +184,7 @@ void freeTable (Table* table)
 
 Cell* indexTable (Table* table, unsigned int index)
 {
+	if(index < 0) { return table->cells; }
 	if(index >= table->area) { return table->cells + table->area - 1; }
 	return table->cells + index;
 }
@@ -155,10 +201,15 @@ void posToLabel (unsigned int x, unsigned int y, char* result)
 	sprintf(result, "%c%d", ALPHABET[x], y + 1);
 }
 
+/*
+	I should later improve the circular dependency detection on this. Currently it can only detect direct circular dependency
+	e.g.: it will catch "A1 = A1" but it won't catch "A1 = B2", "B2 = A1"
+*/
 void calculateCellTable (Table* table, Cell* cell)
 {
-	if(cell->type != CELLTYPE_FORMULA) { return; }
-	 
+	if(cell->type != CELLTYPE_FORMULA && cell->type != CELLTYPE_FORMULAINVALID) { return; }
+	cell->type = CELLTYPE_FORMULA;
+	
 	// fixed memory for math
 	DoubleStack stack;
 	initDoubleStack(&stack, 8);
@@ -168,45 +219,91 @@ void calculateCellTable (Table* table, Cell* cell)
 	Token* token = cell->token;
 	while(token != NULL)
 	{
-		if(token->type == TOKENTYPE_LITERAL)
+		switch(token->type)
 		{
-			appendDoubleStack(&stack, token->value.literal);
-		}
-		else
-		{
-			switch(token->value.opcode)
+			case TOKENTYPE_LITERAL :
 			{
-				case OPCODE_INDEX :
+				appendDoubleStack(&stack, token->value.literal);
+				break;
+			}
+			case TOKENTYPE_CELL :
+			{
+				cell1 = posTable(table, token->value.pos.x, token->value.pos.y);
+				if(cell != cell1) { calculateCellTable(table, cell1); }
+				if(cell == cell1 || isInvalidCell(cell1))
 				{
-					popDoubleStack(&stack, &x1);
-					cell1 = indexTable(table, (int) x1);
-					calculateCellTable(table, cell1);
-					appendDoubleStack(&stack, cell1->value);
-					break;
+					cell->type = CELLTYPE_FORMULAINVALID;
 				}
-				case OPCODE_POS :
+				appendDoubleStack(&stack, cell1->value);
+				break;
+			}
+			case TOKENTYPE_OPCODE :
+			{
+				switch(token->value.opcode)
 				{
-					popDoubleStack(&stack, &x1);
-					popDoubleStack(&stack, &x2);
-					cell1 = posTable(table, (int) x2, (int) x1);
-					calculateCellTable(table, cell1);
-					appendDoubleStack(&stack, cell1->value);
-					break;
+					case OPCODE_INDEX :
+					{
+						popDoubleStack(&stack, &x1);
+						cell1 = indexTable(table, (int) x1);
+						if(cell != cell1) { calculateCellTable(table, cell1); }
+						if(cell == cell1 || isInvalidCell(cell1))
+						{
+							cell->type = CELLTYPE_FORMULAINVALID;
+						}
+						appendDoubleStack(&stack, cell1->value);
+						break;
+					}
+					case OPCODE_POS :
+					{
+						popDoubleStack(&stack, &x2);
+						popDoubleStack(&stack, &x1);
+						cell1 = posTable(table, (int) x1, (int) x2);
+						if(cell != cell1) { calculateCellTable(table, cell1); }
+						if(cell == cell1 || isInvalidCell(cell1))
+						{
+							cell->type = CELLTYPE_FORMULAINVALID;
+						}
+						appendDoubleStack(&stack, cell1->value);
+						break;
+					}
+					case OPCODE_ADD :
+					{
+						popDoubleStack(&stack, &x2);
+						popDoubleStack(&stack, &x1);
+						appendDoubleStack(&stack, x1 + x2);
+						break;
+					}
+					case OPCODE_SUB :
+					{
+						popDoubleStack(&stack, &x2);
+						popDoubleStack(&stack, &x1);
+						appendDoubleStack(&stack, x1 - x2);
+						break;
+					}
+					case OPCODE_MULT :
+					{
+						popDoubleStack(&stack, &x2);
+						popDoubleStack(&stack, &x1);
+						appendDoubleStack(&stack, x1 * x2);
+						break;
+					}
+					case OPCODE_DIV :
+					{
+						popDoubleStack(&stack, &x2);
+						popDoubleStack(&stack, &x1);
+						appendDoubleStack(&stack, x1 / x2);
+						break;
+					}
+					default :
+					{
+						cell->type = CELLTYPE_FORMULAINVALID;
+					}
 				}
-				case OPCODE_ADD :
-				{
-					popDoubleStack(&stack, &x1);
-					popDoubleStack(&stack, &x2);
-					appendDoubleStack(&stack, x1 + x2);
-					break;
-				}
-				case OPCODE_MULT :
-				{
-					popDoubleStack(&stack, &x1);
-					popDoubleStack(&stack, &x2);
-					appendDoubleStack(&stack, x1 * x2);
-					break;
-				}
+				break;
+			}
+			default :
+			{
+				cell->type = CELLTYPE_FORMULAINVALID;
 			}
 		}
 		token = token->next;
@@ -216,33 +313,38 @@ void calculateCellTable (Table* table, Cell* cell)
 	freeDoubleStack(&stack);
 }
 
-/*
-	this function will later have something similar to the algorithm shown in class, although I'm not quite sure if I'd be able to create it 1:1
-because the cells that a cell depends on is only known when the expression is evaluated. It might be beneficial to remove the AT (@) opcode
-and, in its place, introduce an ADDRESS token type which points to a fixed cell determined at "parse-time" instead of at "evaluation-time"
-	each time a cell has its value/formula modified, this function would be called on it and, in a branching manner, to all the cells whose
-formula evaluation depends on the value of this one
-	FOR NOW it currently just updates all cells which works just fine for now, even if not efficient
-*/
 void updateCellTable (Table* table, Cell* cell)
 {
-	for(int i = 0; i < table->area; i++)
+	if(cell == NULL)
 	{
-		calculateCellTable(table, table->cells + i);
+		for(int i = 0; i < table->area; i++)
+		{
+			calculateCellTable(table, table->cells + i);
+		}
+	}
+	else
+	{
+		/*
+			TO-DO: if a cell is specified, instead of in an expensive manner updating all cells, only update the cell passed
+			and the cells whose formula's calculation depends on it (and so on in an recursive manner)
+		*/
+		calculateCellTable(table, cell);
 	}
 }
 
-void setValueCellTable (Table* table, Cell* cell, double x)
+int setValueCellTable (Table* table, Cell* cell, double x)
 {
 	freeCell(cell);
 	
 	cell->type = CELLTYPE_VALUE;
 	
 	cell->value = x;
+	
+	return 1;
 }
 
-void setFormulaCellTable (Table* table, Cell* cell, char* s)
-{
+int setFormulaCellTable (Table* table, Cell* cell, char* s)
+{	
 	freeCell(cell);
 	
 	cell->type = CELLTYPE_FORMULA;
@@ -250,8 +352,60 @@ void setFormulaCellTable (Table* table, Cell* cell, char* s)
 	unsigned int size = stringLength(s);
 	cell->formula = (char*) malloc(sizeof(char) * size);
 	stringCopy(cell->formula, s);
+
+	int result = tokenizeFormula(s, &cell->token);
+	if(result == 0)
+	{
+		freeCell(cell);
+		return result;
+	}
 	
-	tokenizeFormula(s, &cell->token);
+	return 1;
+}
+
+int setCellTable (Table* table, Cell* cell, char* s)
+{
+	if(s == NULL || s[0] == '\n' || s[0] == '\0')
+	{
+		freeCell(cell);
+		
+		return 2;
+	}
+	else if(s[0] == '=')
+	{
+		int i = 0;
+		int j = 0;
+		int write = 0;
+		while(s[i] != '\0')
+		{
+			if(i > 0 && s[i] != ' ')
+			{
+				write = 1;
+			}
+			if(write && s[i] != '\n') {
+				s[j] = s[i];
+				j += 1;
+			}
+			i += 1;
+		}
+		s[j] = '\0';
+		
+		return setFormulaCellTable(table, cell, s);
+	}
+	else
+	{
+		double x;
+		int result = sscanf(s, "%lf", &x);
+		if(result > 0)
+		{
+			return setValueCellTable(table, cell, x);
+		}
+		else
+		{
+			return 0;
+		}
+	}
+	return 0;
 }
 
 void printTable (Table* table, unsigned int x, unsigned int y)
@@ -260,25 +414,59 @@ void printTable (Table* table, unsigned int x, unsigned int y)
 	
 	int selected = 0;
 	
-	printPadding(' ', margin + 2);
+	printPadding(' ', margin + 3);
 	for(int i = 0; i < table->width; i++)
 	{
-		putchar(ALPHABET[i % MAXWIDTH]);
-		printPadding(' ', table->cellWidth + 1);
+		selected = x == i;
+		if(selected)
+		{
+			putchar('>');
+		}
+		else
+		{
+			putchar(' ');
+		}
+		printPadding(ALPHABET[i % MAXWIDTH], table->cellWidth);
+		if(selected)
+		{
+			putchar('<');
+		}
+		else
+		{
+			putchar(' ');
+		}
 	}
 	putchar('\n');
 	for(int i = 0; i < table->area; i++)
 	{
-		selected = x == i % table->width && y == i / table->width;
-		
 		if(i % table->width == 0)
 		{
 			if(i > 0) { putchar('\n'); }
 			
+			selected = y == i / table->width;
+			if(selected)
+			{
+				putchar('>');
+			}
+			else
+			{
+				putchar(' ');
+			}
 			int n = i / table->width + 1;
-			printPadding(' ', margin - intLength(n));
-			printf("%d ", n);
+			printPadding('0', margin - intLength(n));
+			printf("%d", n);
+			if(selected)
+			{
+				putchar('<');
+			}
+			else
+			{
+				putchar(' ');
+			}
+			putchar(' ');
 		}
+		
+		selected = x == i % table->width && y == i / table->width;
 		if(selected)
 		{
 			putchar('>');

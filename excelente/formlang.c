@@ -2,13 +2,18 @@
 #include <stdlib.h>
 #include "util.h"
 
+extern const unsigned int ALPHABETSIZE;
+extern const char ALPHABET[];
+
 typedef enum Opcode
 {
 	OPCODE_NOOP,
 	OPCODE_INDEX,
 	OPCODE_POS,
 	OPCODE_ADD,
+	OPCODE_SUB,
 	OPCODE_MULT,
+	OPCODE_DIV,
 	OPCODECOUNT, // amount of opcodes defined
 } Opcode;
 
@@ -17,7 +22,9 @@ const char* opcodeSymbols[OPCODECOUNT] = {
 	"@",
 	"@@",
 	"+",
+	"-",
 	"*",
+	"/",
 };
 
 const char* opcodeNames[OPCODECOUNT] =
@@ -26,13 +33,16 @@ const char* opcodeNames[OPCODECOUNT] =
 	"INDEX",
 	"POS",
 	"ADD",
+	"SUB",
 	"MULT",
+	"DIV",
 };
 
 typedef enum TokenType
 {
 	TOKENTYPE_OPCODE,
 	TOKENTYPE_LITERAL,
+	TOKENTYPE_CELL,
 } TokenType;
 
 typedef struct Token
@@ -42,6 +52,7 @@ typedef struct Token
 	{
 		double literal;
 		Opcode opcode;
+		Int2 pos;
 	} value;
 	struct Token* next;
 } Token;
@@ -76,6 +87,11 @@ void printToken (Token* token)
 				printf("OPCODE %s -> ", opcodeNames[(int) token->value.opcode]);
 				break;
 			}
+			case TOKENTYPE_CELL :
+			{
+				printf("CELL (%i, %i) -> ", token->value.pos.x, token->value.pos.y);
+				break;
+			}
 			default :
 			{
 				printf("INVALID -> ");
@@ -86,7 +102,7 @@ void printToken (Token* token)
 	printf("NULL\n");
 }
 
-void tokenizeFormula (char* s, Token** token)
+int tokenizeFormula (char* s, Token** token)
 {
 	if(*token != NULL)
 	{
@@ -120,26 +136,55 @@ void tokenizeFormula (char* s, Token** token)
 					initToken(tail);
 				}
 				
-				int opcodeFound = 0;
+				int success = 0;
 				for(int i = 0; i < OPCODECOUNT; i++)
 				{
 					if(stringEquals(build, opcodeSymbols[i]))
 					{
+						tail->type = TOKENTYPE_OPCODE;
 						tail->value.opcode = (Opcode) i;
-						opcodeFound = 1;
+						success = 1;
 						break;
 					}
 				}
-				if(!opcodeFound)
+				if(!success)
 				{
 					int result = sscanf(build, "%lf", &tail->value.literal);
-					if(result > 0)
+					
+					if(result == 1)
 					{
 						tail->type = TOKENTYPE_LITERAL;
+						success = 1;
 					}
 				}
+				if(!success)
+				{
+					char c;
+					int n1, n2;
+					int result = sscanf(build, "%c%d", &c, &n2);
+					
+					n1 = -1;
+					for(int i = 0; i < ALPHABETSIZE; i++)
+					{
+						if(c == ALPHABET[i])
+						{
+							n1 = i;
+							break;
+						}
+					}
+					n2 = n2 - 1;
+				
+					if(result == 2 && n1 >= 0 && n2 >= 0)
+					{
+						tail->type = TOKENTYPE_CELL;
+						tail->value.pos.x = n1;
+						tail->value.pos.y = n2;
+						success = 1;
+					}
+				}
+				if(!success) { return 0; }
 			}
-			if(s[i] == '\0') { return; }
+			if(s[i] == '\0') { return 1; }
 		}
 		else
 		{
@@ -148,4 +193,6 @@ void tokenizeFormula (char* s, Token** token)
 		}
 		i += 1;
 	}
+	
+	return 1;
 }

@@ -59,6 +59,8 @@ int setValueCellTable (Table* table, Cell* cell, double x);
 
 int setFormulaCellTable (Table* table, Cell* cell, char* s);
 
+int setTextCellTable (Table* table, Cell* cell, char* s);
+
 int setCellTable (Table* table, Cell* cell, char* s);
 
 void printTable (Table* table, unsigned int x, unsigned int y);

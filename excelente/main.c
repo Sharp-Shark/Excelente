@@ -11,29 +11,29 @@ extern const char ALPHABET[];
 void tableTest ()
 {	
 	struct Table table;
-	initTable(&table, 16, 16);
+	initTable(&table, 8, 8);
+	table.cellWidth = 10;
 	
-	setValueCellTable(&table, posTable(&table, 0, 0), 0);
-	setValueCellTable(&table, posTable(&table, 1, 0), 1);
+	setTextCellTable(&table, posTable(&table, 0, 0), "Sales\0");
+	setValueCellTable(&table, posTable(&table, 1, 0), 2);
+	setValueCellTable(&table, posTable(&table, 2, 0), 5);
+	setValueCellTable(&table, posTable(&table, 3, 0), 3);
+	setValueCellTable(&table, posTable(&table, 4, 0), 8);
+	setValueCellTable(&table, posTable(&table, 5, 0), 4);
+	setValueCellTable(&table, posTable(&table, 6, 0), 2);
+	setValueCellTable(&table, posTable(&table, 7, 0), 1);
 	
-	setFormulaCellTable(&table, posTable(&table, 2, 0), "0 @ 1 @ +\0");
-	setFormulaCellTable(&table, posTable(&table, 3, 0), "1 @ 2 @ +\0");
-	setFormulaCellTable(&table, posTable(&table, 4, 0), "2 @ 3 @ +\0");
-	setFormulaCellTable(&table, posTable(&table, 5, 0), "3 @ 4 @ +\0");
-	setFormulaCellTable(&table, posTable(&table, 6, 0), "4 @ 5 @ +\0");
-	setFormulaCellTable(&table, posTable(&table, 7, 0), "5 @ 6 @ +\0");
+	setTextCellTable(&table, posTable(&table, 0, 1), "Total\0");
+	setFormulaCellTable(&table, posTable(&table, 1, 1), "B1 C1 D1 E1 F1 G1 H1 SUM");
 	
-	setValueCellTable(&table, posTable(&table, 0, 1), 0.5);
-	setFormulaCellTable(&table, posTable(&table, 1, 1), "0 1 @@ 2 *\0");
-	setFormulaCellTable(&table, posTable(&table, 2, 1), "1 1 @@ 2 *\0");
-	setFormulaCellTable(&table, posTable(&table, 3, 1), "2 1 @@ 2 *\0");
-	setFormulaCellTable(&table, posTable(&table, 4, 1), "3 1 @@ 2 *\0");
-	setFormulaCellTable(&table, posTable(&table, 5, 1), "4 1 @@ 2 *\0");
-	setFormulaCellTable(&table, posTable(&table, 6, 1), "5 1 @@ 2 *\0");
-	setFormulaCellTable(&table, posTable(&table, 7, 1), "6 1 @@ 2 *\0");
-	
-	setValueCellTable(&table, posTable(&table, 0, 2), 3.141592653589793);
-	setFormulaCellTable(&table, posTable(&table, 1, 2), "1 A3 /\0");
+	setTextCellTable(&table, posTable(&table, 0, 2), "Fibonacci\0");
+	setValueCellTable(&table, posTable(&table, 1, 2), 1);
+	setValueCellTable(&table, posTable(&table, 2, 2), 1);
+	setFormulaCellTable(&table, posTable(&table, 3, 2), "B3 C3 +");
+	setFormulaCellTable(&table, posTable(&table, 4, 2), "C3 D3 +");
+	setFormulaCellTable(&table, posTable(&table, 5, 2), "D3 E3 +");
+	setFormulaCellTable(&table, posTable(&table, 6, 2), "E3 F3 +");
+	setFormulaCellTable(&table, posTable(&table, 7, 2), "F3 G3 +");
 	
 	updateCellTable(&table, NULL);
 	
@@ -43,6 +43,10 @@ void tableTest ()
 	int x, y;
 	x = 0;
 	y = 0;
+	
+	const unsigned int bufferSize = 4096;
+	char* buffer = (char*) malloc(sizeof(char) * bufferSize);
+	setvbuf(stdout, buffer, _IOFBF, bufferSize);
 	
 	int printExcelente = 1;
 	
@@ -72,12 +76,25 @@ void tableTest ()
 			
 			printTable(&table, x, y);
 			
-			posToLabel(x, y, label);
-			printf("%s = ", label);
-			printFormulaCell(posTable(&table, x, y));
-			printf(" (= %lf)\n\n", posTable(&table, x, y)->value);
+			Cell* cell = posTable(&table, x, y);
+			if(cell != NULL)
+			{
+				posToLabel(x, y, label);
+				printf("%s = ", label);
+				printFormulaCell(cell);
+				if(cell->type == CELLTYPE_FORMULA)
+				{
+					printf(" (= %lf)\n\n", cell->value);
+				}
+				else
+				{
+					printf("\n\n");
+				}
+			}
 			
 			printf("WASD to move\nE to modify cell\nZX to change cell width\nC to resize table\nQ to quit\n");
+			
+			fflush(stdout);
 		}
 		
 		c = mygetch();
@@ -131,6 +148,7 @@ void tableTest ()
 				int width, height;
 				
 				printf("\nINSERT WIDTH\n");
+				fflush(stdout);
 				result = scanf("%d", &width);
 				if(width < 1) { width = 1; }
 				if(width > ALPHABETSIZE) { width = ALPHABETSIZE; }
@@ -141,6 +159,7 @@ void tableTest ()
 				}
 				
 				printf("\nINSERT HEIGHT\n");
+				fflush(stdout);
 				result = scanf("%d", &height);
 				if(height < 1) { height = 1; }
 				if(height > ALPHABETSIZE) { height = ALPHABETSIZE; }
@@ -152,8 +171,10 @@ void tableTest ()
 				
 				resizeTable(&table, width, height);
 				
-				x = 0;
-				y = 0;
+				if(x > width - 1) { x = width - 1; }
+				if(y > height - 1) { y = height - 1; }
+				
+				sprintf(message, "[!] RESIZED TABLE TO %d BY %d\n", width, height);
 				
 				renderPending = 1;
 				break;
@@ -162,6 +183,7 @@ void tableTest ()
 			{
 				char s[128];
 				printf("\nINSERT VALUE\n");
+				fflush(stdout);
 				fgets(s, 128, stdin);
 				
 				Cell* cell = posTable(&table, x, y);
@@ -207,6 +229,7 @@ void tableTest ()
 		}
 	}
 	
+	free(buffer);
 	freeTable(&table);
 }
 

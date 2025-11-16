@@ -50,6 +50,26 @@ void stringCopy (char* sTo, const char* sFrom)
 	sTo[i] = '\0';
 }
 
+void stringSanitize (char* s, int skip)
+{
+	int i = 0;
+	int j = 0;
+	int write = 0;
+	while(s[i] != '\0')
+	{
+		if(i > skip && s[i] != ' ')
+		{
+			write = 1;
+		}
+		if(write && s[i] != '\n') {
+			s[j] = s[i];
+			j += 1;
+		}
+		i += 1;
+	}
+	s[j] = '\0';
+}
+
 void printPadding (char c, int n)
 {
 	for(int i = 0; i < n; i++)

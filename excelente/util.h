@@ -15,6 +15,8 @@ int stringEquals (const char* s1, const char* s2);
 
 void stringCopy (char* sTo, char* sFrom);
 
+void stringSanitize (char* s, int skip);
+
 void printPadding (char c, int n);
 
 #endif

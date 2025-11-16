@@ -14,6 +14,7 @@ typedef enum CellType
 	CELLTYPE_VALUE,
 	CELLTYPE_FORMULA,
 	CELLTYPE_FORMULAINVALID,
+	CELLTYPE_TEXT,
 } CellType;
 
 typedef struct Cell
@@ -84,8 +85,27 @@ void printValueCell (Cell* cell, const unsigned int cellWidth)
 			break;
 		}
 		case CELLTYPE_FORMULAINVALID :
+		{
 			printPadding('?', cellWidth);
 			break;
+		}
+		case CELLTYPE_TEXT :
+		{
+			char* s = (char*) malloc(sizeof(char) * (cellWidth + 1));
+			int length = 0;
+			while(length < cellWidth && cell->formula[length] != '\0')
+			{
+				s[length] = cell->formula[length];
+				length += 1;
+			}
+			s[length] = '\0';
+			
+			printPadding('.', cellWidth - length);
+			printf("%s", s);
+			
+			free(s);
+			break;
+		}
 		default :
 		{
 			printPadding('!', cellWidth);
@@ -111,6 +131,11 @@ void printFormulaCell (Cell* cell)
 		case CELLTYPE_FORMULAINVALID :
 		{
 			printf("%s", cell->formula);
+			break;
+		}
+		case CELLTYPE_TEXT :
+		{
+			printf("\"%s\"", cell->formula);
 			break;
 		}
 		default :
@@ -156,10 +181,9 @@ void resizeTable (Table* table, unsigned int width, unsigned int height)
 		width = MAXWIDTH;
 	}
 	
-	table->cellWidth = 8;
 	table->width = width;
 	table->height = height;
-	table->area = width * height;	
+	table->area = width * height;
 	table->cells = (Cell*) realloc(table->cells, sizeof(Cell) * table->area);
 	
 	for(int i = 0; i < table->area; i++)
@@ -289,6 +313,17 @@ void calculateCellTable (Table* table, Cell* cell)
 						appendDoubleStack(&stack, x1 / x2);
 						break;
 					}
+					case OPCODE_SUM :
+					{
+						x1 = 0.0;
+						while(stack.len > 0)
+						{
+							popDoubleStack(&stack, &x2);
+							x1 += x2;
+						}
+						appendDoubleStack(&stack, x1);
+						break;
+					}
 					default :
 					{
 						cell->type = CELLTYPE_FORMULAINVALID;
@@ -339,7 +374,7 @@ int setValueCellTable (Table* table, Cell* cell, double x)
 }
 
 int setFormulaCellTable (Table* table, Cell* cell, char* s)
-{	
+{
 	freeCell(cell);
 	
 	cell->type = CELLTYPE_FORMULA;
@@ -355,6 +390,24 @@ int setFormulaCellTable (Table* table, Cell* cell, char* s)
 		return result;
 	}
 	
+	if(cell->token->type == TOKENTYPE_LITERAL && cell->token->next == NULL)
+	{
+		setValueCellTable(table, cell, cell->token->value.literal);
+	}
+	
+	return 1;
+}
+
+int setTextCellTable (Table* table, Cell* cell, char* s)
+{
+	freeCell(cell);
+	
+	cell->type = CELLTYPE_TEXT;
+	
+	unsigned int size = stringLength(s);
+	cell->formula = (char*) malloc(sizeof(char) * size);
+	stringCopy(cell->formula, s);
+	
 	return 1;
 }
 
@@ -368,24 +421,15 @@ int setCellTable (Table* table, Cell* cell, char* s)
 	}
 	else if(s[0] == '=')
 	{
-		int i = 0;
-		int j = 0;
-		int write = 0;
-		while(s[i] != '\0')
-		{
-			if(i > 0 && s[i] != ' ')
-			{
-				write = 1;
-			}
-			if(write && s[i] != '\n') {
-				s[j] = s[i];
-				j += 1;
-			}
-			i += 1;
-		}
-		s[j] = '\0';
+		stringSanitize(s, 0);
 		
 		return setFormulaCellTable(table, cell, s);
+	}
+	else if(s[0] == '"')
+	{
+		stringSanitize(s, 0);
+		
+		return setTextCellTable(table, cell, s);
 	}
 	else
 	{
@@ -397,7 +441,9 @@ int setCellTable (Table* table, Cell* cell, char* s)
 		}
 		else
 		{
-			return 0;
+			stringSanitize(s, -1);
+			
+			return setTextCellTable(table, cell, s);
 		}
 	}
 	return 0;

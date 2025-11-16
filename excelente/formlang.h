@@ -5,13 +5,14 @@
 
 typedef enum Opcode
 {
-	OPCODE_NOOP,
+	OPCODE_EMPTY,
 	OPCODE_INDEX,
 	OPCODE_POS,
 	OPCODE_ADD,
 	OPCODE_SUB,
 	OPCODE_MULT,
 	OPCODE_DIV,
+	OPCODE_SUM,
 	OPCODECOUNT, // amount of opcodes defined
 } Opcode;
 

@@ -7,35 +7,38 @@ extern const char ALPHABET[];
 
 typedef enum Opcode
 {
-	OPCODE_NOOP,
+	OPCODE_EMPTY,
 	OPCODE_INDEX,
 	OPCODE_POS,
 	OPCODE_ADD,
 	OPCODE_SUB,
 	OPCODE_MULT,
 	OPCODE_DIV,
+	OPCODE_SUM,
 	OPCODECOUNT, // amount of opcodes defined
 } Opcode;
 
 const char* opcodeSymbols[OPCODECOUNT] = {
-	"noop",
+	"EMPTY",
 	"@",
 	"@@",
 	"+",
 	"-",
 	"*",
 	"/",
+	"SUM",
 };
 
 const char* opcodeNames[OPCODECOUNT] =
 {
-	"NOOP",
+	"EMPTY",
 	"INDEX",
 	"POS",
 	"ADD",
 	"SUB",
 	"MULT",
 	"DIV",
+	"SUM",
 };
 
 typedef enum TokenType
@@ -60,7 +63,7 @@ typedef struct Token
 void initToken (Token* token)
 {
 	token->type = TOKENTYPE_OPCODE;
-	token->value.opcode = OPCODE_NOOP;
+	token->value.opcode = OPCODE_EMPTY;
 	token->next = NULL;
 }
 

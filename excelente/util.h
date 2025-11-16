@@ -13,7 +13,7 @@ int stringLength (const char* s);
 
 int stringEquals (const char* s1, const char* s2);
 
-void stringCopy (char* sTo, char* sFrom);
+void stringCopy (char* sTo, const char* sFrom);
 
 void stringSanitize (char* s, int skip);
 

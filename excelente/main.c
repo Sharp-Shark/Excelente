@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "util.h"
 #include "table.h"
 #include "io.h"
@@ -24,7 +25,7 @@ void tableTest ()
 	setValueCellTable(&table, posTable(&table, 7, 0), 1);
 	
 	setTextCellTable(&table, posTable(&table, 0, 1), "Total\0");
-	setFormulaCellTable(&table, posTable(&table, 1, 1), "B1 C1 D1 E1 F1 G1 H1 SUM");
+	setFormulaCellTable(&table, posTable(&table, 1, 1), "B1 C1 D1 E1 F1 G1 H1 SUM\0");
 	
 	setTextCellTable(&table, posTable(&table, 0, 2), "Fibonacci\0");
 	setValueCellTable(&table, posTable(&table, 1, 2), 1);
@@ -45,7 +46,7 @@ void tableTest ()
 	y = 0;
 	
 	const unsigned int bufferSize = 4096;
-	char* buffer = (char*) malloc(sizeof(char) * bufferSize);
+	char* buffer = (char*) malloc(sizeof(char) * (bufferSize + 1));
 	setvbuf(stdout, buffer, _IOFBF, bufferSize);
 	
 	int printExcelente = 1;

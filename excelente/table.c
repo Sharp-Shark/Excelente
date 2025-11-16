@@ -379,7 +379,7 @@ int setFormulaCellTable (Table* table, Cell* cell, char* s)
 	
 	cell->type = CELLTYPE_FORMULA;
 	
-	unsigned int size = stringLength(s);
+	unsigned int size = stringLength(s) + 1;
 	cell->formula = (char*) malloc(sizeof(char) * size);
 	stringCopy(cell->formula, s);
 
@@ -404,7 +404,7 @@ int setTextCellTable (Table* table, Cell* cell, char* s)
 	
 	cell->type = CELLTYPE_TEXT;
 	
-	unsigned int size = stringLength(s);
+	unsigned int size = stringLength(s) + 1;
 	cell->formula = (char*) malloc(sizeof(char) * size);
 	stringCopy(cell->formula, s);
 	

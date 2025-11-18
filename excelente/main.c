@@ -106,7 +106,7 @@ void tableTest ()
 				}
 			}
 			
-			printf("WASD to move\nE to modify cell\nZX to change cell width\nC to resize table\nF to save to file\nG to load from file\nQ to quit\n");
+			printf("WASD to move\nE to modify cell\nZX to change cell width\nR to resize table\nC to save to file\nV to load from file\nQ to quit\n");
 			
 			fflush(stdout);
 		}
@@ -156,7 +156,7 @@ void tableTest ()
 				else { renderPending = 1; }
 				break;
 			}
-			case 'c' :
+			case 'r' :
 			{
 				int result;
 				int width, height;
@@ -236,7 +236,7 @@ void tableTest ()
 				renderPending = 1;
 				break;
 			}
-			case 'f' :
+			case 'c' :
 			{
 				FILE* file = fopen(SAVEFILENAME, "w");
 				saveToFileTable(&table, file);
@@ -247,7 +247,7 @@ void tableTest ()
 				renderPending = 1;
 				break;
 			}
-			case 'g' :
+			case 'v' :
 			{
 				FILE* file = fopen(SAVEFILENAME, "r");
 				

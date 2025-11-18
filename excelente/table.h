@@ -65,4 +65,8 @@ int setCellTable (Table* table, Cell* cell, char* s);
 
 void printTable (Table* table, unsigned int x, unsigned int y);
 
+void saveToFileTable (Table* table, FILE* file);
+
+void loadFromFileTable (Table* table, FILE* file);
+
 #endif

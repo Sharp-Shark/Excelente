@@ -528,3 +528,100 @@ void printTable (Table* table, unsigned int x, unsigned int y)
 	}
 	putchar('\n');
 }
+
+void saveToFileTable (Table* table, FILE* file)
+{
+	fwrite(&table->width, sizeof(int), 1, file);
+	fwrite(&table->height, sizeof(int), 1, file);
+	
+	Cell* cell;
+	for(int i = 0; i < table->area; i++)
+	{
+		cell = table->cells + i;
+		
+		fwrite(&cell->type, sizeof(CellType), 1, file);
+		switch(cell->type)
+		{
+			case CELLTYPE_EMPTY :
+			{
+				break;
+			}
+			case CELLTYPE_VALUE :
+			{
+				fwrite(&cell->value, sizeof(double), 1, file);
+				
+				break;
+			}
+			case CELLTYPE_FORMULA :
+			case CELLTYPE_FORMULAINVALID :
+			case CELLTYPE_TEXT :
+			{
+				unsigned int size = stringLength(cell->formula) + 1;
+				fwrite(&size, sizeof(int), 1, file);
+				fwrite(cell->formula, sizeof(char), size, file);
+				
+				break;
+			}
+		}
+	}
+}
+
+void loadFromFileTable (Table* table, FILE* file)
+{
+	unsigned int width, height;
+	fread(&width, sizeof(int), 1, file);
+	fread(&height, sizeof(int), 1, file);
+	
+	resizeTable(table, width, height);
+	
+	Cell* cell;
+	for(int i = 0; i < table->area; i++)
+	{
+		cell = table->cells + i;
+		
+		fread(&cell->type, sizeof(CellType), 1, file);
+		switch(cell->type)
+		{
+			case CELLTYPE_EMPTY :
+			{
+				break;
+			}
+			case CELLTYPE_VALUE :
+			{
+				double x;
+				fread(&x, sizeof(double), 1, file);
+				
+				setValueCellTable(table, cell, x);
+				
+				break;
+			}
+			case CELLTYPE_FORMULA :
+			case CELLTYPE_FORMULAINVALID :
+			{
+				unsigned int size;
+				fread(&size, sizeof(int), 1, file);
+				char* s;
+				s = (char*) malloc(sizeof(char) * size);
+				fread(s, sizeof(char), size, file);
+				
+				setFormulaCellTable(table, cell, s);
+				
+				break;
+			}
+			case CELLTYPE_TEXT :
+			{
+				unsigned int size;
+				fread(&size, sizeof(int), 1, file);
+				char* s;
+				s = (char*) malloc(sizeof(char) * size);
+				fread(s, sizeof(char), size, file);
+				
+				setTextCellTable(table, cell, s);
+				
+				break;
+			}
+		}
+	}
+	
+	updateCellTable(table, NULL);
+}

@@ -6,6 +6,8 @@
 #include "io.h"
 #include "formlang.h"
 
+#define SAVEFILENAME "save.excel"
+
 extern const unsigned int ALPHABETSIZE;
 extern const char ALPHABET[];
 
@@ -35,6 +37,17 @@ void tableTest ()
 	setFormulaCellTable(&table, posTable(&table, 5, 2), "D3 E3 +");
 	setFormulaCellTable(&table, posTable(&table, 6, 2), "E3 F3 +");
 	setFormulaCellTable(&table, posTable(&table, 7, 2), "F3 G3 +");
+	
+	/* if the program lags whilst running this table it is because I haven't added optimization yet
+	setValueCellTable(&table, indexTable(&table, 0), 1);
+	setValueCellTable(&table, indexTable(&table, 1), 1);
+	char formula[64];
+	for(int i = 2; i < table.area; i++)
+	{
+		sprintf(formula, "%d @ %d @ +", i - 2, i - 1);
+		setFormulaCellTable(&table, indexTable(&table, i), formula);
+	}
+	*/
 	
 	updateCellTable(&table, NULL);
 	
@@ -93,7 +106,7 @@ void tableTest ()
 				}
 			}
 			
-			printf("WASD to move\nE to modify cell\nZX to change cell width\nC to resize table\nQ to quit\n");
+			printf("WASD to move\nE to modify cell\nZX to change cell width\nC to resize table\nF to save to file\nG to load from file\nQ to quit\n");
 			
 			fflush(stdout);
 		}
@@ -218,6 +231,39 @@ void tableTest ()
 					s[j] = '\0';
 					
 					sprintf(message, "[!] ATTEMPT TO INSERT INVALID FORMULA \"%s\" INTO CELL %s\n", s, label);
+				}
+				
+				renderPending = 1;
+				break;
+			}
+			case 'f' :
+			{
+				FILE* file = fopen(SAVEFILENAME, "w");
+				saveToFileTable(&table, file);
+				fclose(file);
+				
+				sprintf(message, "[!] SAVED TABLE TO FILE \"%s\"\n", SAVEFILENAME);
+				
+				renderPending = 1;
+				break;
+			}
+			case 'g' :
+			{
+				FILE* file = fopen(SAVEFILENAME, "r");
+				
+				if(file != NULL)
+				{
+					loadFromFileTable(&table, file);
+					fclose(file);
+					
+					if(x > table.width - 1) { x = table.width - 1; }
+					if(y > table.height - 1) { y = table.height - 1; }
+					
+					sprintf(message, "[!] LOADED TABLE FROM FILE \"%s\"\n", SAVEFILENAME);
+				}
+				else
+				{
+					sprintf(message, "[!] FILE \"%s\" NOT FOUND\n", SAVEFILENAME);
 				}
 				
 				renderPending = 1;

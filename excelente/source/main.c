@@ -17,6 +17,7 @@ void tableTest ()
 	initTable(&table, 8, 8);
 	table.cellWidth = 10;
 	
+	/*
 	setTextCellTable(&table, posTable(&table, 0, 0), "Sales\0");
 	setValueCellTable(&table, posTable(&table, 1, 0), 2);
 	setValueCellTable(&table, posTable(&table, 2, 0), 5);
@@ -37,6 +38,7 @@ void tableTest ()
 	setFormulaCellTable(&table, posTable(&table, 5, 2), "D3 E3 +");
 	setFormulaCellTable(&table, posTable(&table, 6, 2), "E3 F3 +");
 	setFormulaCellTable(&table, posTable(&table, 7, 2), "F3 G3 +");
+	*/
 	
 	/* if the program lags whilst running this table it is because I haven't added optimization yet
 	setValueCellTable(&table, indexTable(&table, 0), 1);
@@ -68,7 +70,8 @@ void tableTest ()
 	
 	char s[128];
 	char c;
-	while(1)
+	int loop = 1;
+	while(loop)
 	{
 		if(renderPending)
 		{
@@ -295,7 +298,8 @@ void tableTest ()
 			}
 			case 'q' :
 			{
-				return;
+				loop = 0;
+				break;
 			}
 		}
 	}

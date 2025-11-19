@@ -176,6 +176,11 @@ void initTable (Table* table, unsigned int width, unsigned int height)
 
 void resizeTable (Table* table, unsigned int width, unsigned int height)
 {
+	for(int i = 0; i < table->area; i++)
+	{
+		freeCell(table->cells + i);
+	}
+	
 	if(width > MAXWIDTH)
 	{
 		width = MAXWIDTH;

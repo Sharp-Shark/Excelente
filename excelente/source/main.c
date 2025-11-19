@@ -66,6 +66,7 @@ void tableTest ()
 	
 	int renderPending = 1;
 	
+	char s[128];
 	char c;
 	while(1)
 	{
@@ -163,7 +164,8 @@ void tableTest ()
 				
 				printf("\nINSERT WIDTH\n");
 				fflush(stdout);
-				result = scanf("%d", &width);
+				fgets(s, 128, stdin);
+				result = sscanf(s, "%d", &width);
 				if(width < 1) { width = 1; }
 				if(width > ALPHABETSIZE) { width = ALPHABETSIZE; }
 				if(result == 0)
@@ -176,7 +178,8 @@ void tableTest ()
 				
 				printf("\nINSERT HEIGHT\n");
 				fflush(stdout);
-				result = scanf("%d", &height);
+				fgets(s, 128, stdin);
+				result = sscanf(s, "%d", &height);
 				if(height < 1) { height = 1; }
 				if(height > ALPHABETSIZE) { height = ALPHABETSIZE; }
 				if(result == 0)
@@ -199,7 +202,6 @@ void tableTest ()
 			}
 			case 'e' :
 			{
-				char s[128];
 				printf("\nINSERT VALUE\n");
 				fflush(stdout);
 				fgets(s, 128, stdin);
@@ -242,7 +244,6 @@ void tableTest ()
 			}
 			case 'c' :
 			{
-				char s[128];
 				printf("\nINSERT FILE PATH (OPTIONAL)\n");
 				fflush(stdout);
 				fgets(s, 128, stdin);
@@ -263,7 +264,6 @@ void tableTest ()
 			}
 			case 'v' :
 			{
-				char s[128];
 				printf("\nINSERT FILE PATH (OPTIONAL)\n");
 				fflush(stdout);
 				fgets(s, 128, stdin);

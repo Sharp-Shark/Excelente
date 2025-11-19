@@ -6,7 +6,7 @@
 #include "io.h"
 #include "formlang.h"
 
-#define SAVEFILENAME "save.excel"
+#define SAVEFILENAME "save.btbl"
 
 extern const unsigned int ALPHABETSIZE;
 extern const char ALPHABET[];
@@ -169,6 +169,8 @@ void tableTest ()
 				if(result == 0)
 				{
 					stringCopy(message, "[!] INVALID WIDTH\n\0");
+					
+					renderPending = 1;
 					break;
 				}
 				
@@ -180,6 +182,8 @@ void tableTest ()
 				if(result == 0)
 				{
 					stringCopy(message, "[!] INVALID HEIGHT\n\0");
+					
+					renderPending = 1;
 					break;
 				}
 				
@@ -238,18 +242,38 @@ void tableTest ()
 			}
 			case 'c' :
 			{
-				FILE* file = fopen(SAVEFILENAME, "w");
+				char s[128];
+				printf("\nINSERT FILE PATH (OPTIONAL)\n");
+				fflush(stdout);
+				fgets(s, 128, stdin);
+				stringSanitize(s, -1);
+				if(s[0] == '\0')
+				{
+					stringCopy(s, SAVEFILENAME);
+				}
+				
+				FILE* file = fopen(s, "w");
 				saveToFileTable(&table, file);
 				fclose(file);
 				
-				sprintf(message, "[!] SAVED TABLE TO FILE \"%s\"\n", SAVEFILENAME);
+				sprintf(message, "[!] SAVED TABLE TO FILE \"%s\"\n", s);
 				
 				renderPending = 1;
 				break;
 			}
 			case 'v' :
 			{
-				FILE* file = fopen(SAVEFILENAME, "r");
+				char s[128];
+				printf("\nINSERT FILE PATH (OPTIONAL)\n");
+				fflush(stdout);
+				fgets(s, 128, stdin);
+				stringSanitize(s, -1);
+				if(s[0] == '\0')
+				{
+					stringCopy(s, SAVEFILENAME);
+				}
+				
+				FILE* file = fopen(s, "r");
 				
 				if(file != NULL)
 				{
@@ -259,11 +283,11 @@ void tableTest ()
 					if(x > table.width - 1) { x = table.width - 1; }
 					if(y > table.height - 1) { y = table.height - 1; }
 					
-					sprintf(message, "[!] LOADED TABLE FROM FILE \"%s\"\n", SAVEFILENAME);
+					sprintf(message, "[!] LOADED TABLE FROM FILE \"%s\"\n", s);
 				}
 				else
 				{
-					sprintf(message, "[!] FILE \"%s\" NOT FOUND\n", SAVEFILENAME);
+					sprintf(message, "[!] FILE \"%s\" NOT FOUND\n", s);
 				}
 				
 				renderPending = 1;

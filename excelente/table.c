@@ -382,7 +382,7 @@ int setFormulaCellTable (Table* table, Cell* cell, char* s)
 	unsigned int size = stringLength(s) + 1;
 	cell->formula = (char*) malloc(sizeof(char) * size);
 	stringCopy(cell->formula, s);
-
+	
 	int result = tokenizeFormula(s, &cell->token);
 	if(result == 0)
 	{
@@ -390,9 +390,14 @@ int setFormulaCellTable (Table* table, Cell* cell, char* s)
 		return result;
 	}
 	
-	if(cell->token->type == TOKENTYPE_LITERAL && cell->token->next == NULL)
+	if(cell->token == NULL)
 	{
-		setValueCellTable(table, cell, cell->token->value.literal);
+		freeCell(cell);
+		return 2;
+	}
+	else if(cell->token->type == TOKENTYPE_LITERAL && cell->token->next == NULL)
+	{
+		return setValueCellTable(table, cell, cell->token->value.literal);
 	}
 	
 	return 1;

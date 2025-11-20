@@ -256,7 +256,7 @@ void tableTest ()
 					stringCopy(s, SAVEFILENAME);
 				}
 				
-				FILE* file = fopen(s, "w");
+				FILE* file = fopen(s, "wb");
 				saveToFileTable(&table, file);
 				fclose(file);
 				
@@ -276,7 +276,7 @@ void tableTest ()
 					stringCopy(s, SAVEFILENAME);
 				}
 				
-				FILE* file = fopen(s, "r");
+				FILE* file = fopen(s, "rb");
 				
 				if(file != NULL)
 				{

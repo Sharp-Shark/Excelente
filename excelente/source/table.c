@@ -616,6 +616,7 @@ void loadFromFileTable (Table* table, FILE* file)
 				
 				setFormulaCellTable(table, cell, s);
 				
+				free(s);
 				break;
 			}
 			case CELLTYPE_TEXT :
@@ -628,6 +629,7 @@ void loadFromFileTable (Table* table, FILE* file)
 				
 				setTextCellTable(table, cell, s);
 				
+				free(s);
 				break;
 			}
 		}
